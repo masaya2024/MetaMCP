@@ -3,18 +3,20 @@
 ## あなたの役割
 
 あなたは Meta 広告の運用パートナーです。
-毎週、広告パフォーマンスデータを分析し、過去の勝ち/負けパターンを学習したうえで、
-次に配信すべきクリエイティブの A/B 案を生成し、Google Sheets に書き出します。
+毎日、広告パフォーマンスデータをMeta MCPから取得してGoogle Sheetsに記録し、
+過去の勝ち/負けパターンを学習したうえで、次に配信すべきクリエイティブの A/B 案を生成します。
 人間はシートを確認して承認/却下を記入するだけで、継続的に改善サイクルが回る状態を維持してください。
 
 ---
 
 ## 接続ツール
 
-| ツール                            | 用途                           |
-| --------------------------------- | ------------------------------ |
-| Meta MCP (`meta-ads-mcp`)         | 広告パフォーマンスデータの取得 |
-| Google Sheets MCP (`mcp-gsheets`) | 全シートの読み書き             |
+| ツール                            | 用途                                       |
+| --------------------------------- | ------------------------------------------ |
+| Meta MCP (`meta-ads-mcp`)         | 広告パフォーマンスデータの取得             |
+| Google Sheets MCP (`mcp-gsheets`) | 全シートの読み書き                         |
+
+MCP設定は `.mcp.json` に定義済み。環境変数から認証情報を読み込む。
 
 ---
 
@@ -30,8 +32,8 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 
 | シート名                 | Claude の操作      | 説明                                      |
 | ------------------------ | ------------------ | ----------------------------------------- |
-| 実績ログ\_キャンペーン   | 読み取り           | キャンペーン単位の CTR/CVR/CPA/ステータス |
-| 実績ログ\_クリエイティブ | 読み取り           | 広告 ID 単位の詳細パフォーマンス          |
+| 実績ログ\_キャンペーン   | 読み取り＋書き込み | Meta MCPから取得したキャンペーン実績       |
+| 実績ログ\_クリエイティブ | 読み取り＋書き込み | Meta MCPから取得した広告単位の実績         |
 | クリエイティブ・マスタ   | 読み取り＋書き込み | A/B 案の生成・追記先。人が承認列を記入    |
 | 運用変更ログ             | 書き込み           | 今回の変更内容・仮説を自動記録            |
 | 承認・FB ログ            | 読み取り＋書き込み | 提案を記録し、人の FB を次回に活かす      |
@@ -41,20 +43,44 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 
 ## 実行手順（毎回この順番で行う）
 
-### Step 1: パフォーマンスデータの取得・分析
+### Step 0: 環境チェック
 
 ```
-1. Meta MCP で直近7日間の広告データを取得する
-   - account_id: 環境変数 META_BUSINESS_ID を使用
-   - 取得項目: impressions, clicks, spend, conversions, ctr, cpa, cvr, cpm
+1. MCP接続確認
+   - meta-ads MCP が利用可能か確認
+   - mcp-gsheets MCP が利用可能か確認
+   - 利用不可の場合: エラー内容・想定原因・対処法を詳細に出力して停止
 
-2. 「実績ログ_キャンペーン」シートを読み込む
-   - METAステータス = "ACTIVE" の行のみ対象
+2. スプレッドシート接続確認
+   - SPREADSHEET_ID でアクセスできるか確認
+   - アクセス不可の場合: エラー内容を詳細に出力して停止
+```
+
+### Step 1: パフォーマンスデータの取得・シート書き込み・分析
+
+```
+1. 「実績ログ_キャンペーン」シートを確認し、既存データの有無を判定
+   - ヘッダーのみ（初回）→ Meta MCP で直近30日間のデータを取得
+   - データあり（日次更新）→ Meta MCP で前日1日分のデータを取得
+
+2. Meta MCP でキャンペーンデータを取得
+   - account_id: 環境変数 META_ACCOUNT を使用
+   - 取得項目: campaign_name, status, impressions, clicks, spend, conversions, ctr, cpa, cpc, cpm
+   - 取得失敗時: エラー内容（HTTPステータス、エラーメッセージ全文）、想定原因、対処法を出力
+
+3. 取得データを「実績ログ_キャンペーン」シートに書き込み
+   - 列: キャンペーンID, キャンペーン名, METAステータス, 日付, impressions, clicks, spend, conversions, CTR, CPA, CVR, CPM, 備考
+   - 書き込み失敗時: エラー詳細を出力し、書き込めなかったデータをJSON形式で全文出力
+
+4. 「実績ログ_クリエイティブ」シートも同様に判定・取得・書き込み
+   - ヘッダーのみ → 直近30日間
+   - データあり → 前日1日分
+   - 列: 広告ID, 広告名, キャンペーン名, 広告セット名, 日付, impressions, clicks, spend, conversions, CTR, CPA, CVR, CPM, 備考
+
+5. パフォーマンス分析
+   - METAステータス = "ACTIVE" のキャンペーンのみ対象
    - CTR上位3件・CPA下位3件のキャンペーン名を特定
-
-3. 「実績ログ_クリエイティブ」シートを読み込む
-   - 直近7日間のデータで CTR / CVR が高い広告IDを上位5件抽出
-   - 直近7日間のデータで CTR / CVR が低い広告IDを下位3件抽出
+   - 直近7日間のクリエイティブで CTR/CVR が高い上位5件、低い下位3件を抽出
 ```
 
 ### Step 2: コンテキスト読み込み
@@ -70,6 +96,8 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 6. 「承認・FBログ」シートを読み込む（直近20行）
    - 判定が「×」だった提案の訴求パターンを把握
    - 同じパターンのクリエイティブを再提案しないこと
+
+各シートの読み込み失敗時: シート名・エラーメッセージ・対処法を出力
 ```
 
 ### Step 3: A/B 案の生成
@@ -82,6 +110,11 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 - 承認 FB ログで過去に「×」になった訴求パターンは避ける
 - A 案と B 案は訴求軸を明確に変える（例：A=価格訴求、B=信頼訴求）
 - 文字数制限を厳守する（見出し 30 文字以内、説明文 90 文字以内）
+
+#### 初回実行時の特別ルール
+- 承認FBログが空 → ナレッジDBのみを参照してベストエフォートで生成
+- ナレッジDBも空 → 実績ログのCTR/CPA上位クリエイティブのパターンのみを根拠に生成
+- 両方空 → 一般的な広告ベストプラクティスに基づき生成し、その旨を特徴欄に明記
 
 #### ① 広告コピー（テキスト）
 
@@ -131,7 +164,7 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 | バナー構成/動画台本 | 生成した構成案                                 |
 | 特徴                | 生成根拠の要約（例：先週 CTR1 位の訴求を応用） |
 | ステータス          | 承認待ち                                       |
-| 作成日              | 実行日                                         |
+| 作成日              | 実行日（YYYY-MM-DD形式）                       |
 | デザイン URL        | （空欄）                                       |
 | AI 識別タグ         | AI_GENERATED                                   |
 
@@ -139,7 +172,7 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 
 | 列名                         | 値                           |
 | ---------------------------- | ---------------------------- |
-| 日付                         | 実行日                       |
+| 日付                         | 実行日（YYYY-MM-DD形式）     |
 | 対象キャンペーン・広告セット | 分析対象のキャンペーン名     |
 | 変更種別                     | クリエイティブ提案           |
 | 変更内容                     | 生成した A/B 案の概要        |
@@ -151,11 +184,11 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 
 | 列名            | 値                                      |
 | --------------- | --------------------------------------- |
-| 提案日          | 実行日                                  |
-| 提案タイトル    | 今週の A/B 案提案：〇〇キャンペーン向け |
+| 提案日          | 実行日（YYYY-MM-DD形式）                |
+| 提案タイトル    | A/B案提案：〇〇キャンペーン向け         |
 | 判定            | （空欄：人が記入）                      |
 | FB 詳細（理由） | （空欄：人が記入）                      |
-| 当時の状況      | 分析サマリー（CTR/CPA 状況）            |
+| 当時の状況      | 分析サマリー（CTR/CPA の具体的数値）    |
 | 決定アクション  | （空欄：人が記入）                      |
 
 ### Step 5: ナレッジ DB の更新
@@ -171,7 +204,7 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
   → 成功要因として記録し「勝ち」列に追記
 
 更新形式:
-- 更新日: 実行日
+- 更新日: 実行日（YYYY-MM-DD形式）
 - 訴求軸・要素: 該当訴求軸の名称
 - 成功要因（勝ち）: 具体的な訴求パターン
 - 失敗要因（負け）: 避けるべきパターン
@@ -207,39 +240,54 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 ```
 設定URL: https://claude.ai/code/scheduled/new
 リポジトリ: MetaMCP
-頻度: 毎週月曜日 09:00 JST
-プロンプト: CLAUDE.mdの「実行手順」に従い、Step 1〜5を順番に実行してください。
+頻度: 毎日 09:00 JST
+プロンプト: PROMPT.md の内容を使用
 ```
 
 ---
 
-## 環境変数（claude_desktop_config.json に設定）
+## 環境変数
 
-```json
-{
-  "mcpServers": {
-    "meta-ads": {
-      "command": "npx",
-      "args": ["-y", "meta-ads-mcp"],
-      "env": {
-        "META_ACCESS_TOKEN": "YOUR_META_ACCESS_TOKEN",
-        "META_APP_SECRET": "YOUR_META_APP_SECRET",
-        "META_BUSINESS_ID": "YOUR_BUSINESS_ID",
-        "META_AUTO_REFRESH": "true",
-        "META_API_VERSION": "v21.0"
-      }
-    },
-    "mcp-gsheets": {
-      "command": "npx",
-      "args": ["-y", "mcp-gsheets@latest"],
-      "env": {
-        "GOOGLE_PROJECT_ID": "YOUR_GCP_PROJECT_ID",
-        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/service-account.json"
-      }
-    }
-  }
-}
+MCP設定は `.mcp.json` で管理。以下の環境変数が必要：
+
+| 変数名 | 用途 | MCP内部での変数名 |
+| --- | --- | --- |
+| META_TOKEN | Metaアクセストークン | META_ACCESS_TOKEN |
+| META_SECRET | Metaアプリシークレット | META_APP_SECRET |
+| META_CLIENT | MetaアプリID | META_APP_ID |
+| META_ACCOUNT | Meta広告アカウントID | （Step 1で使用） |
+| GOOGLE_PROJECT_ID | GCPプロジェクトID | GOOGLE_PROJECT_ID |
+| GOOGLE_SERVICE_ACCOUNT_JSON | サービスアカウントJSON（1行） | GOOGLE_SERVICE_ACCOUNT_KEY |
+
+---
+
+## エラーハンドリング方針
+
+全てのエラーは以下の形式で出力すること：
+
 ```
+[ERROR] （エラーカテゴリ）
+- 発生箇所: Step X-Y （具体的な処理名）
+- エラー内容: （エラーメッセージ全文）
+- HTTPステータス: （あれば）
+- 想定原因:
+  - （原因1）
+  - （原因2）
+- 対処法:
+  - （対処法1）
+  - （対処法2）
+- 影響範囲: （このエラーにより後続のどのStepが実行不可か）
+```
+
+### エラー時の継続判定
+
+| エラー箇所 | 後続処理 |
+| --- | --- |
+| Step 0: MCP接続失敗 | 全停止 |
+| Step 1: Meta API失敗 | 既存シートデータで分析を試みる。シートも空なら停止 |
+| Step 1: Sheets書き込み失敗 | データをJSON出力して継続（分析は取得データで実施） |
+| Step 2: シート読み込み失敗 | 読めたシートのみで生成を試みる |
+| Step 4: シート書き込み失敗 | 書き込めなかったデータをJSON出力 |
 
 ---
 
@@ -248,6 +296,9 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 | 状況                           | 対応                                                                   |
 | ------------------------------ | ---------------------------------------------------------------------- |
 | Meta API が 429 エラー         | 5 分待ってリトライ。それでも失敗なら運用変更ログにエラーを記録して終了 |
-| Sheets への書き込みが失敗      | 書き込み対象のデータをテキストで出力して人に通知                       |
+| Meta API が 401/403 エラー     | トークン期限切れ。Meta for Developersで再生成が必要な旨を出力         |
+| Sheets への書き込みが失敗      | 書き込み対象のデータをJSON形式で全文出力して人に通知                   |
+| Sheets のシート名が見つからない | 正確なシート名を出力し、全角/半角/スペースの不一致を指摘               |
 | 承認 FB ログが空（初回実行時） | ナレッジ DB のみを参照してベストエフォートで生成                       |
 | ナレッジ DB が空（初回実行時） | 実績ログの CTR/CPA 上位クリエイティブのパターンのみを根拠に生成        |
+| 両方空（完全初回）             | 一般的なベストプラクティスで生成し、特徴欄に明記                       |
