@@ -47,8 +47,8 @@ SPREADSHEET_ID=1hGmdrm7MLqCQINx0zSeWzXIil17yHIsykAFfUBstX94
 
 ```
 1. MCP接続確認
-   - meta-ads MCP が利用可能か確認
-   - mcp-gsheets MCP が利用可能か確認
+   - meta-ads MCP: get_insights で軽量クエリを実行して確認（※ health_check / get_ad_accounts は business_management 権限が必要なため使用しない）
+   - mcp-gsheets MCP: sheets_check_access で確認
    - 利用不可の場合: エラー内容・想定原因・対処法を詳細に出力して停止
 
 2. スプレッドシート接続確認
