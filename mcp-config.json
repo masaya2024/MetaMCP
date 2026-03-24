@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "meta-ads": {
+      "command": "npx",
+      "args": ["-y", "meta-ads-mcp"],
+      "env": {
+        "META_ACCOUNT": "${META_ACCOUNT}",
+        "META_CLIENT": "${META_CLIENT}",
+        "META_SECRET": "${META_SECRET}",
+        "META_TOKEN": "${META_TOKEN}"
+      }
+    },
+    "mcp-gsheets": {
+      "command": "npx",
+      "args": ["-y", "mcp-gsheets@latest"],
+      "env": {
+        "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+      }
+    }
+  }
+}
