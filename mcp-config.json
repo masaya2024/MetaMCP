@@ -4,18 +4,18 @@
       "command": "npx",
       "args": ["-y", "meta-ads-mcp"],
       "env": {
-        "META_ACCOUNT": "${META_ACCOUNT}",
-        "META_CLIENT": "${META_CLIENT}",
-        "META_SECRET": "${META_SECRET}",
-        "META_TOKEN": "${META_TOKEN}"
+        "META_ACCOUNT": "env:META_ACCOUNT",
+        "META_CLIENT": "env:META_CLIENT",
+        "META_SECRET": "env:META_SECRET",
+        "META_TOKEN": "env:META_TOKEN"
       }
     },
     "mcp-gsheets": {
       "command": "npx",
       "args": ["-y", "mcp-gsheets@latest"],
       "env": {
-        "GOOGLE_PROJECT_ID": "${GOOGLE_PROJECT_ID}",
-        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+        "GOOGLE_PROJECT_ID": "env:GOOGLE_PROJECT_ID",
+        "GOOGLE_APPLICATION_CREDENTIALS": "env:GOOGLE_APPLICATION_CREDENTIALS"
       }
     }
   }
