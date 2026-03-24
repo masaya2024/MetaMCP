@@ -65,8 +65,8 @@ function setupAllSheets() {
     var headerRange = sheet.getRange(1, 1, 1, sheetDef.headers.length);
     headerRange.setValues([sheetDef.headers]);
     headerRange.setFontWeight("bold");
-    headerRange.setBackground("#4285F4");
-    headerRange.setFontColor("#FFFFFF");
+    headerRange.setBackground("#FFFFFF");
+    headerRange.setFontColor("#000000");
     sheet.setFrozenRows(1);
     sheet.autoResizeColumns(1, sheetDef.headers.length);
   });
