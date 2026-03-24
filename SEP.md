@@ -158,8 +158,6 @@ MetaMCP/
 ├── CLAUDE.md                 # Claudeへの指示書（実行手順・ルール）
 ├── PROMPT.md                 # スケジュールトリガー用プロンプト
 ├── SEP.md                    # セットアップ手順書（このファイル）
-├── README.md                 # プロジェクト概要
-├── mcp-config.json           # MCP設定リファレンス
 ├── service-account.json      # GCPサービスアカウント鍵（git管理外）
 └── scripts/
     ├── setupSheets.gs        # スプレッドシート初期セットアップ用GAS
