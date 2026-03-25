@@ -1,22 +1,16 @@
 #!/bin/bash
 
-echo "=== 1. .env 読み込み ==="
+echo "=== 1. cloud-env.txt 読み込み ==="
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_FILE="$SCRIPT_DIR/.env"
+ENV_FILE="$SCRIPT_DIR/cloud-env.txt"
 if [ -f "$ENV_FILE" ]; then
   set -a
   source "$ENV_FILE"
   set +a
-  echo ".env 読み込み完了 ($ENV_FILE)"
-elif [ -f "/Users/hattori/Downloads/GitHub/MetaMCP/.env" ]; then
-  set -a
-  source "/Users/hattori/Downloads/GitHub/MetaMCP/.env"
-  set +a
-  echo ".env 読み込み完了 (フォールバックパス)"
+  echo "cloud-env.txt 読み込み完了 ($ENV_FILE)"
 else
-  echo "エラー: .env ファイルが見つかりません"
+  echo "エラー: cloud-env.txt が見つかりません"
   echo "検索パス: $ENV_FILE"
-  echo "カレントディレクトリ: $(pwd)"
   exit 1
 fi
 
