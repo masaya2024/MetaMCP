@@ -12,17 +12,16 @@ function setupAllSheets() {
     {
       name: "実績ログ_キャンペーン",
       headers: [
-        "キャンペーンID", "キャンペーン名", "METAステータス", "日付",
-        "impressions", "clicks", "spend", "conversions",
-        "CTR", "CPA", "CVR", "CPM", "備考"
+        "日付", "キャンペーン名", "表示回数", "クリック数",
+        "費用", "CV", "CPA", "CVR", "CTR", "CPM",
+        "アクション・METAステータス", "LP利用"
       ]
     },
     {
       name: "実績ログ_クリエイティブ",
       headers: [
-        "広告ID", "広告名", "キャンペーン名", "広告セット名", "日付",
-        "impressions", "clicks", "spend", "conversions",
-        "CTR", "CPA", "CVR", "CPM", "備考"
+        "日付", "キャンペーン名", "広告セット名", "広告ID", "広告名",
+        "表示回数", "クリック数", "費用", "CV", "CTR", "CVR", "CPA"
       ]
     },
     {
@@ -52,7 +51,8 @@ function setupAllSheets() {
       name: "ナレッジDB",
       headers: [
         "更新日", "訴求軸・要素", "成功要因（勝ち）",
-        "失敗要因（負け）", "次回の黄金ルール", "適用条件"
+        "失敗要因（負け）", "次回の黄金ルール", "適用条件",
+        "信頼スコア", "検証回数"
       ]
     }
   ];
