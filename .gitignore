@@ -3,3 +3,5 @@
 node_modules/
 service-account.json
 credentials/
+setup.sh
+cloud-env.txt
