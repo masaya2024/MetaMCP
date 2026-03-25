@@ -44,8 +44,20 @@ META_ACCOUNT: 環境変数 META_ACCOUNT を参照
 
 ## Step 0: 環境チェック
 
-1. `sheets_check_access` でスプレッドシート接続確認
-2. `list_ads`（limit=1）で Meta MCP 接続確認
+### 0-1. MCP ツール読み込み
+
+Claude Code では MCP ツールは遅延読み込みされるため、使用前に ToolSearch で明示的にロードする。
+以下の順で検索し、ツールを利用可能にすること:
+
+1. `ToolSearch("select:mcp__meta-ads__list_ads,mcp__meta-ads__list_ad_sets,mcp__meta-ads__list_creatives,mcp__meta-ads__upload_creative_asset")`
+2. `ToolSearch("select:mcp__mcp-gsheets__sheets_get_values,mcp__mcp-gsheets__sheets_batch_get_values,mcp__mcp-gsheets__sheets_update_values,mcp__mcp-gsheets__sheets_append_values,mcp__mcp-gsheets__sheets_check_access")`
+
+**ツール命名規則:** `mcp__<サーバー名>__<ツール名>` （例: `mcp__meta-ads__list_ads`）
+
+### 0-2. 接続確認
+
+1. `mcp__mcp-gsheets__sheets_check_access`（spreadsheetId）でスプレッドシート接続確認
+2. `mcp__meta-ads__list_ads`（account_id, limit=1）で Meta MCP 接続確認
 3. いずれか失敗 → エラー出力して停止
 
 ---
